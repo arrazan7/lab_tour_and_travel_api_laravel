@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthAPIController;
+use App\Http\Controllers\API\DestinasiAPIController;
 use App\Http\Controllers\API\PaketDestinasiAPIController;
 use App\Http\Controllers\API\JadwalDestinasiAPIController;
 
@@ -20,6 +21,8 @@ Route::group(["middleware" => ["auth:sanctum"]], function(){
     Route::get('/profile', [AuthAPIController::class, 'profile']);
 });
 
+Route::get('/read-destinasi', [DestinasiAPIController::class, 'index']);
+
 Route::get('/read-paket', [PaketDestinasiAPIController::class, 'index']);
 Route::post('/store-paket', [PaketDestinasiAPIController::class, 'store']);
 Route::get('/search-paket/{id_paketdestinasi}', [PaketDestinasiAPIController::class, 'show']);
@@ -33,3 +36,4 @@ Route::post('/update-jam-mulai', [JadwalDestinasiAPIController::class, 'updateJa
 Route::post('/update-jam-selesai', [JadwalDestinasiAPIController::class, 'updateJamSelesai']);
 Route::post('/update-id-destinasi', [JadwalDestinasiAPIController::class, 'updateIdDestinasi']);
 Route::post('/delete-jadwal', [JadwalDestinasiAPIController::class, 'destroy']);
+

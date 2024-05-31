@@ -13,13 +13,25 @@ class PaketDestinasiAPIController extends Controller
     {
         $paketDestinasi = PaketDestinasi::all(); // Mengambil semua data dari tabel paket_destinasi
 
-        $response = [
-            'status' => true,
-            'message' => 'Get List Paket Destinasi Successfully.',
-            'data' => $paketDestinasi, // Mengirimkan data paket_destinasi dalam format JSON
-        ];
+        // Memeriksa apakah data ditemukan
+        if ($paketDestinasi -> isEmpty()) {
+            $response = [
+                'status' => false,
+                'message' => 'Get List Paket Destinasi Failed.',
+                'data' => []
+            ];
 
-        return response()->json($response); // Mengembalikan respons JSON
+            return response() -> json($response);
+        }
+        else {
+            $response = [
+                'status' => true,
+                'message' => 'Get List Paket Destinasi Successfully.',
+                'data' => $paketDestinasi, // Mengirimkan data paket_destinasi dalam format JSON
+            ];
+
+            return response()->json($response); // Mengembalikan respons JSON
+        }
     }
 
     public function store(Request $request)

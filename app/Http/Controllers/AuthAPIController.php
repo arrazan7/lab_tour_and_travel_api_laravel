@@ -41,7 +41,7 @@ class AuthAPIController extends Controller
                 // Auth Token
                 $token = $user -> createToken("mytoken") -> plainTextToken;
                 return response() -> json([
-                    'status' => false,
+                    'status' => true,
                     'message' => 'User logged in',
                     'token' => $token,
                     'data' => []
@@ -111,7 +111,7 @@ class AuthAPIController extends Controller
             'full_name' => $request -> full_name,
             'email' => $request -> email,
             'password' => bcrypt($request -> password),
-            'user_type' => 'admin'
+            'user_type' => 'public'
         ]);
 
         return response() -> json([
