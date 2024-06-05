@@ -104,23 +104,38 @@ class DestinasiAPIController extends Controller
         }
     }
 
-    // public function store(Request $request)
-    // {
-    //     // Dapatkan data yang dikirim dari Laravel UI
-    //     $data = $request -> all();
+    public function store(Request $request)
+    {
+        // Dapatkan data yang dikirim dari Laravel UI
+        $data = $request -> all();
 
-    //     // Validate input data
-    //     $requiredFields = ['id_paketdestinasi', 'hari', 'id_destinasi', 'jam_mulai', 'jam_selesai'];
-    //     foreach ($requiredFields as $field) {
-    //         if (empty($data[$field])) {
-    //             return response() -> json([
-    //                 'status' => false,
-    //                 'message' => "Input data `{$field}` tidak boleh kosong.",
-    //                 'data' => []
-    //             ], 400);
-    //             exit;
-    //         }
-    //     }
+        // Validate input data
+        $requiredFields = [
+            'nama_destinasi',
+            'jenis',
+            'kota',
+            'jam_buka',
+            'jam_tutup',
+            'jam_lokasi',
+            'harga_wni',
+            'harga_wna'];
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                return response() -> json([
+                    'status' => false,
+                    'message' => "Input data `{$field}` tidak boleh kosong.",
+                    'data' => []
+                ], 400);
+                exit;
+            }
+            else {
+                return response() -> json([
+                    'status' => true,
+                    'message' => 'Destinasi Berhasil Diterima.',
+                    'data' => $data
+                ], 200);
+            }
+        }
 
     //     // Prepare parameterized stored procedure call
     //     $storedProcCall = "CALL jadwal_destinasi (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -155,7 +170,7 @@ class DestinasiAPIController extends Controller
     //             'data' => []
     //         ], 500);
     //     }
-    // }
+    }
 
     // public function updateJamMulai(Request $request)
     // {

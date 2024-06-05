@@ -22,6 +22,7 @@ Route::group(["middleware" => ["auth:sanctum"]], function(){
 });
 
 Route::get('/read-destinasi', [DestinasiAPIController::class, 'index']);
+Route::get('/store-destinasi', [DestinasiAPIController::class, 'store']);
 
 Route::get('/read-paket', [PaketDestinasiAPIController::class, 'index']);
 Route::post('/store-paket', [PaketDestinasiAPIController::class, 'store']);
