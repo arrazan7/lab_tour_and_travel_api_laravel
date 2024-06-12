@@ -12,6 +12,9 @@ use App\Models\TemaDestinasi;
 
 class DestinasiAPIController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         // Mencari data destinasi
@@ -82,13 +85,16 @@ class DestinasiAPIController extends Controller
         }
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(int $id_destinasi)
     {
         // Mencari data destinasi berdasarkan id_destinasi
-        $destinasi = Destinasi::where('id_destinasi', $id_destinasi) -> get();
+        $destinasi = Destinasi::where('id_destinasi', $id_destinasi) -> get() -> first();
 
         // Memeriksa apakah data ditemukan
-        if ($destinasi -> isEmpty()) {
+        if (!$destinasi) {
             return response() -> json([
                 'status' => false,
                 'message' => 'Get List Destinasi by Id ' . $id_destinasi . ' Failed.',
@@ -96,14 +102,61 @@ class DestinasiAPIController extends Controller
             ], 404);
         }
         else {
+            // Mencari tema destinasi
+            $temaDestinasi = TemaDestinasi::where('id_destinasi', $id_destinasi) -> get();
+            $temaData = []; // Membuat array kosong data tema destinasi
+            foreach ($temaDestinasi as $temaRow) {
+                // Mencari nama dan jenis tema
+                $tema = Tema::where('id_tema', $temaRow -> id_tema) -> first();
+                $temaData[] = [
+                    'id_temadestinasi' => $temaRow -> id_temadestinasi,
+                    'id_destinasi' => $temaRow -> id_destinasi,
+                    'id_tema' => $temaRow -> id_tema,
+                    'nama_tema' => $tema -> nama_tema,
+                    'jenis' => $tema -> jenis
+                ]; // Mengisi data tema destinasi
+            };
+
+            // Mencari hari tutup
+            $destinasiTutup = DestinasiTutup::where('id_destinasi', $id_destinasi) -> get();
+            $tutupData = []; // Membuat array kosong data hari tutup destinasi
+            foreach ($destinasiTutup as $tutupRow) {
+                $tutupData[] = [
+                    'id_destinasitutup' => $tutupRow -> id_destinasitutup,
+                    'id_destinasi' => $tutupRow -> id_destinasi,
+                    'hari_tutup' => $tutupRow -> hari_tutup
+                ]; // Mengisi data hari tutup destinasi
+            };
+
+            $destinasiData = [
+                'id_destinasi' => $destinasi -> id_destinasi,
+                'nama_destinasi' => $destinasi -> nama_destinasi,
+                'jenis' => $destinasi -> jenis,
+                'kota' => $destinasi -> kota,
+                'jam_buka' => $destinasi -> jam_buka,
+                'jam_tutup' => $destinasi -> jam_tutup,
+                'jam_lokasi' => $destinasi -> jam_lokasi,
+                'harga_wni' => $destinasi -> harga_wni,
+                'harga_wna' => $destinasi -> harga_wna,
+                'foto' => $destinasi -> foto,
+                'koordinat' => $destinasi -> koordinat,
+                'deskripsi' => $destinasi -> deskripsi,
+                'rating' => $destinasi -> rating,
+                'tema' => $temaData, // Menyisipkan data tema destinasi
+                'tutup' => $tutupData, // Menyisipkan data hari tutup destinasi
+            ]; // Menyisipkan data destinasi ke array
+
             return response() -> json([
                 'status' => true,
                 'message' => 'Get List Destinasi by Id ' . $id_destinasi . ' Successfully.',
-                'data' => $destinasi
+                'data' => $destinasiData
             ], 200); // Mengembalikan respons JSON
         }
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         // Dapatkan data yang dikirim dari Laravel UI
@@ -118,7 +171,8 @@ class DestinasiAPIController extends Controller
             'jam_tutup',
             'jam_lokasi',
             'harga_wni',
-            'harga_wna'];
+            'harga_wna'
+        ];
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
                 return response() -> json([
@@ -129,225 +183,371 @@ class DestinasiAPIController extends Controller
                 exit;
             }
             else {
-                return response() -> json([
-                    'status' => true,
-                    'message' => 'Destinasi Berhasil Diterima.',
-                    'data' => $data
-                ], 200);
+                // Menghindari null
+                if (empty($data['foto'])) {
+                    $data['foto'] = "";
+                }
+                if (empty($data['koordinat'])) {
+                    $data['koordinat'] = "";
+                }
+                if (empty($data['deskripsi'])) {
+                    $data['deskripsi'] = "";
+                }
+
+                // Prepare parameterized stored insert destinasi
+                // INSERT INTO destinasi VALUES (0, 'Pasar Kotagede', 'wisata', 'Yogyakarta', '00:00', '24:00', 'WIB', 25000, 25000, '', '', '', 10),
+                $storedInsertDestinasi = "INSERT INTO destinasi VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 10)";
+                $boundParamsDestinasi = [
+                    $data['nama_destinasi'],
+                    $data['jenis'],
+                    $data['kota'],
+                    $data['jam_buka'],
+                    $data['jam_tutup'],
+                    $data['jam_lokasi'],
+                    $data['harga_wni'],
+                    $data['harga_wna'],
+                    $data['foto'],
+                    $data['koordinat'],
+                    $data['deskripsi']
+                ];
+
+                // Execute stored insert using try-catch block
+                try {
+                    DB::statement($storedInsertDestinasi, $boundParamsDestinasi);
+
+                    $destinasi = Destinasi::where('nama_destinasi', $data['nama_destinasi'])
+                    ->where('jenis', $data['jenis'])
+                    ->where('kota', $data['kota'])
+                    ->get()
+                    ->first();
+
+                    foreach ($data['id_tema'] as $id_tema) {
+                        // Prepare parameterized stored insert tema destinasi
+                        $storedInsertTema = "INSERT INTO tema_destinasi VALUES (0, ?, ?)";
+                        $boundParamsTema = [
+                            $destinasi -> id_destinasi,
+                            $id_tema
+                        ];
+
+                        try {
+                            DB::statement($storedInsertTema, $boundParamsTema);
+                        } catch (\Exception $e) {
+                            return response() -> json([
+                                'status' => false,
+                                'message' => 'Gagal menambahkan tema destinasi. ' .$e. '', // User-friendly error message,
+                                'data' => []
+                            ], 500);
+                            exit;
+                        }
+                    };
+
+                    foreach ($data['hari_tutup'] as $nama_hari) {
+                        // Prepare parameterized stored insert tema destinasi
+                        $storedInsertTutup = "INSERT INTO destinasi_tutup VALUES (0, ?, ?)";
+                        $boundParamsTutup = [
+                            $destinasi -> id_destinasi,
+                            $nama_hari
+                        ];
+
+                        try {
+                            DB::statement($storedInsertTutup, $boundParamsTutup);
+                        } catch (\Exception $e) {
+                            return response() -> json([
+                                'status' => false,
+                                'message' => 'Gagal menambahkan hari destinasi tutup. ' .$e. '', // User-friendly error message,
+                                'data' => []
+                            ], 500);
+                            exit;
+                        }
+                    };
+
+                    return response() -> json([
+                        'status' => true,
+                        'message' => 'Berhasil menambahkan destinasi.', // User-friendly error message,
+                        'data' => $data
+                    ], 200);
+
+                } catch (\Exception $e) {
+                    return response() -> json([
+                        'status' => false,
+                        'message' => 'Gagal menambahkan destinasi. ' .$e. '', // User-friendly error message,
+                        'data' => []
+                    ], 500);
+                }
             }
         }
-
-    //     // Prepare parameterized stored procedure call
-    //     $storedProcCall = "CALL jadwal_destinasi (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    //     $boundParams = [
-    //         $data['id_paketdestinasi'],
-    //         $data['hari'],
-    //         $data['koordinat_berangkat'],
-    //         $data['koordinat_tiba'],
-    //         $data['jarak_tempuh'],
-    //         $data['waktu_tempuh'],
-    //         $data['id_destinasi'],
-    //         $data['jam_mulai'],
-    //         $data['jam_selesai'],
-    //         $data['zona_mulai'],
-    //         $data['zona_selesai'],
-    //         $data['catatan'],
-    //     ];
-
-    //     // Execute stored procedure using try-catch block
-    //     try {
-    //         DB::statement($storedProcCall, $boundParams);
-
-    //         return response() -> json([
-    //             'status' => true,
-    //             'message' => 'Jadwal Destinasi Berhasil Ditambahkan.',
-    //             'data' => $data
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response() -> json([
-    //             'status' => false,
-    //             'message' => 'Gagal menambahkan jadwal destinasi. ' .$e. '', // User-friendly error message,
-    //             'data' => []
-    //         ], 500);
-    //     }
     }
 
-    // public function updateJamMulai(Request $request)
-    // {
-    //     // Dapatkan data yang dikirim dari Laravel UI
-    //     $data = $request -> all();
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request)
+    {
+        // Dapatkan data yang dikirim dari Laravel UI
+        $data = $request -> all();
 
-    //     // Validate input data
-    //     $requiredFields = ['id_paketdestinasi', 'hari_ke', 'destinasi_ke', 'jam_mulai'];
-    //     foreach ($requiredFields as $field) {
-    //         if (empty($data[$field])) {
-    //             return response() -> json([
-    //                 'status' => false,
-    //                 'message' => 'Input data ' .$field. ' tidak boleh kosong.',
-    //                 'data' => []
-    //             ], 400);
-    //             exit;
-    //         }
-    //     }
+        // Mencari data destinasi berdasarkan id_destinasi
+        $destinasi = Destinasi::where('id_destinasi', $data['id_destinasi']) -> get() -> first();
 
-    //     // Prepare parameterized stored procedure call
-    //     $storedProcCall = "CALL update_jam_mulai (?, ?, ?, ?)";
-    //     $boundParams = [
-    //         $data['id_paketdestinasi'],
-    //         $data['hari_ke'],
-    //         $data['destinasi_ke'],
-    //         $data['jam_mulai']
-    //     ];
+        // Memeriksa apakah data ditemukan
+        if (!$destinasi) {
+            return response() -> json([
+                'status' => false,
+                'message' => 'Get List Destinasi by Id ' . $data['id_destinasi'] . ' Failed.',
+                'data' => []
+            ], 404);
+        }
+        else {
+            // Mencari tema destinasi
+            $temaDestinasi = TemaDestinasi::where('id_destinasi', $data['id_destinasi']) -> get();
+            $temaData = []; // Membuat array kosong data tema destinasi
+            foreach ($temaDestinasi as $temaRow) {
+                $temaData[] = $temaRow -> id_tema; // Mengisi data tema destinasi
+            };
 
-    //     // Execute stored procedure using try-catch block
-    //     try {
-    //         DB::statement($storedProcCall, $boundParams);
+            // Mencari hari tutup
+            $destinasiTutup = DestinasiTutup::where('id_destinasi', $data['id_destinasi']) -> get();
+            $tutupData = []; // Membuat array kosong data hari tutup destinasi
+            foreach ($destinasiTutup as $tutupRow) {
+                $tutupData[] = $tutupRow -> hari_tutup; // Mengisi data hari tutup destinasi
+            };
 
-    //         return response() -> json([
-    //             'status' => true,
-    //             'message' => 'Jam Mulai Berhasil Diperbarui.',
-    //             'data' => $data
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response() -> json([
-    //             'status' => false,
-    //             'message' => 'Gagal memperbarui Jam Mulai. Message: ' .$e. '', // User-friendly error message,
-    //             'data' => []
-    //         ], 500);
-    //     }
-    // }
+            $destinasiDatabase = [
+                'id_destinasi' => $destinasi -> id_destinasi,
+                'nama_destinasi' => $destinasi -> nama_destinasi,
+                'jenis' => $destinasi -> jenis,
+                'kota' => $destinasi -> kota,
+                'jam_buka' => $destinasi -> jam_buka,
+                'jam_tutup' => $destinasi -> jam_tutup,
+                'jam_lokasi' => $destinasi -> jam_lokasi,
+                'harga_wni' => $destinasi -> harga_wni,
+                'harga_wna' => $destinasi -> harga_wna,
+                'foto' => $destinasi -> foto,
+                'koordinat' => $destinasi -> koordinat,
+                'deskripsi' => $destinasi -> deskripsi,
+                'rating' => $destinasi -> rating,
+                'hari_tutup' => $tutupData, // Menyisipkan data hari tutup destinasi
+                'id_tema' => $temaData // Menyisipkan data tema destinasi
+            ]; // Menyisipkan data destinasi ke array
 
-    // public function updateJamSelesai(Request $request)
-    // {
-    //     // Dapatkan data yang dikirim dari Laravel UI
-    //     $data = $request -> all();
+            $storedQueryUpdate = "UPDATE destinasi SET
+                nama_destinasi = :nama_destinasi,
+                jenis = :jenis,
+                kota = :kota,
+                jam_buka = :jam_buka,
+                jam_tutup = :jam_tutup,
+                jam_lokasi = :jam_lokasi,
+                harga_wni = :harga_wni,
+                harga_wna = :harga_wna,
+                koordinat = :koordinat,
+                deskripsi = :deskripsi
+            WHERE id_destinasi = :id_destinasi";
 
-    //     // Validate input data
-    //     $requiredFields = ['id_paketdestinasi', 'hari_ke', 'destinasi_ke', 'jam_selesai'];
-    //     foreach ($requiredFields as $field) {
-    //         if (empty($data[$field])) {
-    //             return response() -> json([
-    //                 'status' => false,
-    //                 'message' => 'Input data ' .$field. ' tidak boleh kosong.',
-    //                 'data' => []
-    //             ], 400);
-    //             exit;
-    //         }
-    //     }
+            $boundParams = [
+                ':nama_destinasi' => $data['nama_destinasi'],
+                ':jenis' => $data['jenis'],
+                ':kota' => $data['kota'],
+                ':jam_buka' => $data['jam_buka'],
+                ':jam_tutup' => $data['jam_tutup'],
+                ':jam_lokasi' => $data['jam_lokasi'],
+                ':harga_wni' => $data['harga_wni'],
+                ':harga_wna' => $data['harga_wna'],
+                ':koordinat' => $data['koordinat'],
+                ':deskripsi' => $data['deskripsi'],
+                ':id_destinasi' => $data['id_destinasi'],
+            ];
 
-    //     // Prepare parameterized stored procedure call
-    //     $storedProcCall = "CALL update_jam_selesai (?, ?, ?, ?)";
-    //     $boundParams = [
-    //         $data['id_paketdestinasi'],
-    //         $data['hari_ke'],
-    //         $data['destinasi_ke'],
-    //         $data['jam_selesai']
-    //     ];
+            // Execute stored query update using try-catch block
+            try {
+                DB::statement($storedQueryUpdate, $boundParams);
+            } catch (\Exception $e) {
+                return response() -> json([
+                    'status' => false,
+                    'message' => 'Gagal memperbarui data Destinasi. Message: ' .$e. '', // User-friendly error message,
+                    'data' => []
+                ], 500);
+            }
 
-    //     // Execute stored procedure using try-catch block
-    //     try {
-    //         DB::statement($storedProcCall, $boundParams);
 
-    //         return response() -> json([
-    //             'status' => true,
-    //             'message' => 'Jam Selesai Berhasil Diperbarui.',
-    //             'data' => $data
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response() -> json([
-    //             'status' => false,
-    //             'message' => 'Gagal memperbarui Jam Selesai. Message: ' .$e. '', // User-friendly error message,
-    //             'data' => []
-    //         ], 500);
-    //     }
-    // }
+            if (!empty($data['foto'])) {
+                // foto perlu diperbarui
+                // Prepare parameterized stored update
+                $storedQueryUpdate = "UPDATE destinasi SET foto = ? WHERE id_destinasi = ?";
+                $boundParams = [
+                    $data['foto'],
+                    $data['id_destinasi']
+                ];
 
-    // public function updateIdDestinasi(Request $request)
-    // {
-    //     // Dapatkan data yang dikirim dari Laravel UI
-    //     $data = $request -> all();
+                // Execute stored query update using try-catch block
+                try {
+                    DB::statement($storedQueryUpdate, $boundParams);
+                } catch (\Exception $e) {
+                    return response() -> json([
+                        'status' => false,
+                        'message' => 'Gagal memperbarui foto Destinasi. Message: ' .$e. '', // User-friendly error message,
+                        'data' => []
+                    ], 500);
+                }
+            }
 
-    //     // Validate input data
-    //     $requiredFields = ['id_paketdestinasi', 'hari_ke', 'destinasi_ke', 'id_destinasi'];
-    //     foreach ($requiredFields as $field) {
-    //         if (empty($data[$field])) {
-    //             return response() -> json([
-    //                 'status' => false,
-    //                 'message' => 'Input data ' .$field. ' tidak boleh kosong.',
-    //                 'data' => []
-    //             ], 400);
-    //             exit;
-    //         }
-    //     }
+            // Menghapus id_tema pada database yang tidak ada di data form
+            foreach ($destinasiDatabase['id_tema'] as $id_temaDatabase) {
+                if (!in_array($id_temaDatabase, $data['id_tema'])) {
+                    // Prepare parameterized stored delete
+                    $storedQueryDelete = "DELETE FROM tema_destinasi WHERE id_destinasi = ? AND id_tema = ?";
+                    $boundParams = [
+                        $data['id_destinasi'],
+                        $id_temaDatabase
+                    ];
 
-    //     // Prepare parameterized stored procedure call
-    //     $storedQueryUpdate = "UPDATE jadwal_destinasi SET id_destinasi = ? WHERE id_paketdestinasi = ? AND hari_ke = ? AND destinasi_ke = ?";
-    //     $boundParams = [
-    //         $data['id_destinasi'],
-    //         $data['id_paketdestinasi'],
-    //         $data['hari_ke'],
-    //         $data['destinasi_ke']
-    //     ];
+                    // Execute stored query update using try-catch block
+                    try {
+                        DB::statement($storedQueryDelete, $boundParams);
+                    } catch (\Exception $e) {
+                        return response() -> json([
+                            'status' => false,
+                            'message' => 'Gagal menghapus tema Destinasi. Message: ' .$e. '', // User-friendly error message,
+                            'data' => []
+                        ], 500);
+                    }
+                }
+            };
 
-    //     // Execute stored procedure using try-catch block
-    //     try {
-    //         DB::statement($storedQueryUpdate, $boundParams);
+            // Menambah id_tema pada database berdasarkan id_tema baru di data form
+            foreach ($data['id_tema'] as $id_temaForm) {
+                if (!in_array($id_temaForm, $destinasiDatabase['id_tema'])) {
+                    // Prepare parameterized stored insert tema destinasi
+                    $storedInsertTema = "INSERT INTO tema_destinasi VALUES (0, ?, ?)";
+                    $boundParamsTema = [
+                        $data['id_destinasi'],
+                        $id_temaForm
+                    ];
 
-    //         return response() -> json([
-    //             'status' => true,
-    //             'message' => 'ID Destinasi Berhasil Diperbarui.',
-    //             'data' => $data
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response() -> json([
-    //             'status' => false,
-    //             'message' => 'Gagal memperbarui ID Destinasi. Message: ' .$e. '', // User-friendly error message,
-    //             'data' => []
-    //         ], 500);
-    //     }
-    // }
+                    try {
+                        DB::statement($storedInsertTema, $boundParamsTema);
+                    } catch (\Exception $e) {
+                        return response() -> json([
+                            'status' => false,
+                            'message' => 'Gagal menambahkan tema destinasi. ' .$e. '', // User-friendly error message,
+                            'data' => []
+                        ], 500);
+                    }
+                }
+            };
 
-    // public function destroy(Request $request)
-    // {
-    //     // Dapatkan data yang dikirim dari Laravel UI
-    //     $data = $request -> all();
+            // Menghapus hari_tutup pada database yang tidak ada di data form
+            foreach ($destinasiDatabase['hari_tutup'] as $hari_tutupDatabase) {
+                if (!in_array($hari_tutupDatabase, $data['hari_tutup'])) {
+                    // Prepare parameterized stored delete
+                    $storedQueryDelete = "DELETE FROM destinasi_tutup WHERE id_destinasi = ? AND hari_tutup = ?";
+                    $boundParams = [
+                        $data['id_destinasi'],
+                        $hari_tutupDatabase
+                    ];
 
-    //     // Validate input data
-    //     $requiredFields = ['id_paketdestinasi', 'hari_ke', 'destinasi_ke'];
-    //     foreach ($requiredFields as $field) {
-    //         if (empty($data[$field])) {
-    //             return response() -> json([
-    //                 'status' => false,
-    //                 'message' => 'Input data ' .$field. ' tidak boleh kosong.',
-    //                 'data' => []
-    //             ], 400);
-    //             exit;
-    //         }
-    //     }
+                    // Execute stored query update using try-catch block
+                    try {
+                        DB::statement($storedQueryDelete, $boundParams);
+                    } catch (\Exception $e) {
+                        return response() -> json([
+                            'status' => false,
+                            'message' => 'Gagal menghapus hari tutup Destinasi. Message: ' .$e. '', // User-friendly error message,
+                            'data' => []
+                        ], 500);
+                    }
+                }
+            };
 
-    //     // Prepare parameterized stored procedure call
-    //     $storedProcCall = "CALL delete_jadwal_destinasi (?, ?, ?)";
-    //     $boundParams = [
-    //         $data['id_paketdestinasi'],
-    //         $data['hari_ke'],
-    //         $data['destinasi_ke']
-    //     ];
+            // Menambah hari_tutup pada database berdasarkan hari_tutup baru di data form
+            foreach ($data['hari_tutup'] as $hari_tutupForm) {
+                if (!in_array($hari_tutupForm, $destinasiDatabase['hari_tutup'])) {
+                    // Prepare parameterized stored insert destinasi tutup
+                    $storedInsertTutup = "INSERT INTO destinasi_tutup VALUES (0, ?, ?)";
+                    $boundParamsTutup = [
+                        $data['id_destinasi'],
+                        $hari_tutupForm
+                    ];
 
-    //     // Execute stored procedure using try-catch block
-    //     try {
-    //         DB::statement($storedProcCall, $boundParams);
+                    try {
+                        DB::statement($storedInsertTutup, $boundParamsTutup);
+                    } catch (\Exception $e) {
+                        return response() -> json([
+                            'status' => false,
+                            'message' => 'Gagal menambahkan hari tutup destinasi. ' .$e. '', // User-friendly error message,
+                            'data' => []
+                        ], 500);
+                    }
+                }
+            };
 
-    //         return response() -> json([
-    //             'status' => true,
-    //             'message' => 'Jadwal Destinasi Berhasil Dihapus.',
-    //             'data' => $data
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response() -> json([
-    //             'status' => false,
-    //             'message' => 'Gagal menghapus jadwal destinasi. Message: ' .$e. '', // User-friendly error message,
-    //             'data' => []
-    //         ], 500);
-    //     }
-    // }
+            return response() -> json([
+                'status' => true,
+                'message' => 'Update Destinasi by Id ' . $data['id_destinasi'] . ' Successfully.',
+                'data' => $data
+            ], 200); // Mengembalikan respons JSON
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Request $request)
+    {
+        // Dapatkan id_destinasi dari request
+        $id_destinasi = $request->input('id_destinasi');
+
+        // Hapus tema destinasi. Prepare parameterized stored delete
+        $queryTema = "DELETE FROM tema_destinasi WHERE id_destinasi = ?";
+        $paramTema = [
+            $id_destinasi
+        ];
+        // Execute stored query update using try-catch block
+        try {
+            DB::statement($queryTema, $paramTema);
+        } catch (\Exception $e) {
+            return response() -> json([
+                'status' => false,
+                'message' => 'Gagal menghapus tema Destinasi. Message: ' .$e. '', // User-friendly error message,
+                'data' => []
+            ], 500);
+        }
+
+        // Hapus destinasi tutup. Prepare parameterized stored delete
+        $queryTutup = "DELETE FROM destinasi_tutup WHERE id_destinasi = ?";
+        $paramTutup = [
+            $id_destinasi
+        ];
+        // Execute stored query update using try-catch block
+        try {
+            DB::statement($queryTutup, $paramTutup);
+        } catch (\Exception $e) {
+            return response() -> json([
+                'status' => false,
+                'message' => 'Gagal menghapus hari tutup Destinasi. Message: ' .$e. '', // User-friendly error message,
+                'data' => []
+            ], 500);
+        }
+
+        // Hapus destinasi
+        $queryDestinasi = "DELETE FROM destinasi WHERE id_destinasi = ?";
+        $paramDestinasi = [
+            $id_destinasi
+        ];
+        // Execute stored query update using try-catch block
+        try {
+            DB::statement($queryDestinasi, $paramDestinasi);
+        } catch (\Exception $e) {
+            return response() -> json([
+                'status' => false,
+                'message' => 'Gagal menghapus hari Destinasi. Message: ' .$e. '', // User-friendly error message,
+                'data' => []
+            ], 500);
+        }
+
+        return response() -> json([
+            'status' => true,
+            'message' => 'Jadwal Destinasi Berhasil Dihapus.',
+            'data' => $id_destinasi
+        ], 200);
+    }
 }

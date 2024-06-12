@@ -22,13 +22,17 @@ Route::group(["middleware" => ["auth:sanctum"]], function(){
 });
 
 Route::get('/read-destinasi', [DestinasiAPIController::class, 'index']);
-Route::get('/store-destinasi', [DestinasiAPIController::class, 'store']);
+Route::get('/search-destinasi/{id_destinasi}', [DestinasiAPIController::class, 'show']);
+Route::post('/store-destinasi', [DestinasiAPIController::class, 'store']);
+Route::post('/update-destinasi', [DestinasiAPIController::class, 'update']);
+Route::post('/delete-destinasi', [DestinasiAPIController::class, 'destroy']);
 
 Route::get('/read-paket', [PaketDestinasiAPIController::class, 'index']);
-Route::post('/store-paket', [PaketDestinasiAPIController::class, 'store']);
 Route::get('/search-paket/{id_paketdestinasi}', [PaketDestinasiAPIController::class, 'show']);
-Route::post('/update-nama-paket', [PaketDestinasiAPIController::class, 'updateNamaPaket']);
-Route::post('/update-foto-paket', [PaketDestinasiAPIController::class, 'updateFotoPaket']);
+Route::post('/filter-paket', [PaketDestinasiAPIController::class, 'filter']);
+Route::post('/store-paket', [PaketDestinasiAPIController::class, 'store']);
+Route::post('/update-paket', [PaketDestinasiAPIController::class, 'update']);
+Route::post('/delete-paket', [PaketDestinasiAPIController::class, 'destroy']);
 
 Route::get('/read-jadwal/{id_paketdestinasi}', [JadwalDestinasiAPIController::class, 'indexByID']);
 Route::get('/search-jadwal/{id_jadwaldestinasi}', [JadwalDestinasiAPIController::class, 'show']);
