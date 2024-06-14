@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\PaketDestinasi;
+use App\Models\Tema;
+use App\Models\Destinasi;
 
 class PaketDestinasiAPIController extends Controller
 {
@@ -37,28 +39,182 @@ class PaketDestinasiAPIController extends Controller
     public function filter(Request $request)
     {
         // Dapatkan data yang dikirim dari Laravel UI
-        $data = $request -> all();
+        $filter = $request -> all();
+        $filterLokasi = $filter['lokasi'];
+        $filterTema = $filter['tema'];
+        $filterDurasi = $filter['durasi'];
+        $filterHarga = $filter['harga'];
 
-        $paketDestinasi = PaketDestinasi::all(); // Mengambil semua data dari tabel paket_destinasi
-
-        // Memeriksa apakah data ditemukan
-        if ($paketDestinasi -> isEmpty()) {
-            $response = [
-                'status' => false,
-                'message' => 'Get List Paket Destinasi Failed.',
-                'data' => []
-            ];
-
-            return response() -> json($response);
+        if (empty($filterLokasi)) {
+            // Memasukkan semua nama kota ke $filter['lokasi'] jika $filter['lokasi'] tidak berisi nilai
+            $distinctKota = Destinasi::select('kota')->distinct()->get();
+            $dataKotaAll = [];
+            foreach ($distinctKota as $row) {
+                $dataKotaAll[] = $row['kota'];
+            }
+            $filterLokasi = $dataKotaAll;
         }
-        else {
-            $response = [
-                'status' => true,
-                'message' => 'Get List Paket Destinasi Successfully.',
-                'data' => $paketDestinasi, // Mengirimkan data paket_destinasi dalam format JSON
-            ];
+        if (empty($filterTema)) {
+            // Memasukkan semua id_tema ke $filter['tema'] jika $filter['tema'] tidak berisi nilai
+            $distinctTema = Tema::select('id_tema')->distinct()->get();
+            $dataTemaAll = [];
+            foreach ($distinctTema as $row) {
+                $dataTemaAll[] = $row['id_tema'];
+            }
+            $filterTema = $dataTemaAll;
+        }
+        if (empty($filterDurasi)) {
+            // Memasukkan semua durasi wisata ke $filter['durasi'] jika $filter['durasi'] tidak berisi nilai
+            $filterDurasi = [1, 2, 3, 4, 5];
+        }
+        if (empty($filterHarga)) {
+            // Memasukkan semua harga ke $filter['harga'] jika $filter['harga'] tidak berisi nilai
+            $filterHarga = [1, 2, 3, 4, 5];
+        }
 
-            return response()->json($response); // Mengembalikan respons JSON
+        $kueriFilterDurasi = "";
+        // Membuat kueri filter durasi
+        if (count($filterDurasi) != 0) {
+            for ($i = 0; $i < count($filterDurasi); $i++) {
+                if ($filterDurasi[$i] == 1) {
+                    if (empty($kueriFilterDurasi)) {
+                        $kueriFilterDurasi = "WHERE durasi_wisata = 1";
+                    }
+                    else {
+                        $kueriFilterDurasi .= " OR durasi_wisata = 1";
+                    }
+                }
+                elseif ($filterDurasi[$i] == 2) {
+                    if (empty($kueriFilterDurasi)) {
+                        $kueriFilterDurasi = "WHERE durasi_wisata = 2";
+                    }
+                    else {
+                        $kueriFilterDurasi .= " OR durasi_wisata = 2";
+                    }
+                }
+                elseif ($filterDurasi[$i] == 3) {
+                    if (empty($kueriFilterDurasi)) {
+                        $kueriFilterDurasi = "WHERE durasi_wisata = 3";
+                    }
+                    else {
+                        $kueriFilterDurasi .= " OR durasi_wisata = 3";
+                    }
+                }
+                elseif ($filterDurasi[$i] == 4) {
+                    if (empty($kueriFilterDurasi)) {
+                        $kueriFilterDurasi = "WHERE durasi_wisata = 4";
+                    }
+                    else {
+                        $kueriFilterDurasi .= " OR durasi_wisata = 4";
+                    }
+                }
+                elseif ($filterDurasi[$i] == 5) {
+                    if (empty($kueriFilterDurasi)) {
+                        $kueriFilterDurasi = "WHERE durasi_wisata > 4";
+                    }
+                    else {
+                        $kueriFilterDurasi .= " OR durasi_wisata > 4";
+                    }
+                }
+            }
+        }
+
+        $kueriFilterHarga = "";
+        // Membuat kueri filter harga
+        if (count($filterHarga) != 0) {
+            for ($i = 0; $i < count($filterHarga); $i++) {
+                if ($filterHarga[$i] == 1) {
+                    if (empty($kueriFilterHarga)) {
+                        $kueriFilterHarga = "WHERE (harga_wni BETWEEN 0 AND 50000)";
+                    }
+                    else {
+                        $kueriFilterHarga .= " OR (harga_wni BETWEEN 0 AND 50000)";
+                    }
+                }
+                elseif ($filterHarga[$i] == 2) {
+                    if (empty($kueriFilterHarga)) {
+                        $kueriFilterHarga = "WHERE (harga_wni BETWEEN 50001 AND 150000)";
+                    }
+                    else {
+                        $kueriFilterHarga .= " OR (harga_wni BETWEEN 50001 AND 150000)";
+                    }
+                }
+                elseif ($filterHarga[$i] == 3) {
+                    if (empty($kueriFilterHarga)) {
+                        $kueriFilterHarga = "WHERE (harga_wni BETWEEN 150001 AND 300000)";
+                    }
+                    else {
+                        $kueriFilterHarga .= " OR (harga_wni BETWEEN 150001 AND 300000)";
+                    }
+                }
+                elseif ($filterHarga[$i] == 4) {
+                    if (empty($kueriFilterHarga)) {
+                        $kueriFilterHarga = "WHERE (harga_wni BETWEEN 300001 AND 500000)";
+                    }
+                    else {
+                        $kueriFilterHarga .= " OR (harga_wni BETWEEN 300001 AND 500000)";
+                    }
+                }
+                elseif ($filterHarga[$i] == 5) {
+                    if (empty($kueriFilterHarga)) {
+                        $kueriFilterHarga = "WHERE harga_wni > 500000";
+                    }
+                    else {
+                        $kueriFilterHarga .= " OR harga_wni > 500000";
+                    }
+                }
+            }
+        }
+
+        // Convert array of params to a comma-separated string of placeholders
+        $placeholdersKota = implode(',', array_fill(0, count($filterLokasi), '?'));
+        $placeholdersTema = implode(',', array_fill(0, count($filterTema), '?'));
+
+        $querySelected = "SELECT * FROM paket_destinasi
+                                WHERE id_paketdestinasi IN
+                                    (SELECT DISTINCT id_paketdestinasi FROM jadwal_destinasi
+                                        WHERE id_destinasi IN
+                                            (SELECT id_destinasi FROM destinasi WHERE kota IN ($placeholdersKota))
+                                        AND id_destinasi IN
+                                            (SELECT id_destinasi FROM tema_destinasi WHERE id_tema IN ($placeholdersTema))
+                                    )
+                                AND durasi_wisata IN
+                                    (SELECT DISTINCT durasi_wisata FROM paket_destinasi
+                                        " .$kueriFilterDurasi. "
+                                    )
+                                AND harga_wni IN
+                                    (SELECT DISTINCT harga_wni FROM paket_destinasi
+                                        " .$kueriFilterHarga. "
+                                    )
+                                ORDER BY id_paketdestinasi";
+
+        // Merge all parameters into a single array
+        $boundParams = array_merge($filterLokasi, $filterTema);
+
+        try {
+            // Execute the query with bound parameters
+            $data = DB::select($querySelected, $boundParams);
+
+            // Process and return data
+            $filterData = [];
+            foreach ($data as $row) {
+                $filterData[] = (array) $row;
+            }
+
+            return response() -> json([
+                'status' => true,
+                'message' => 'Filter Paket Destinasi Berhasil Didapat.',
+                'filter' => $filter,
+                'data' => $filterData
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle the exception
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal mendapatkan paket destinasi. ' .$e -> getMessage(). '', // User-friendly error message,
+                'filter' => $filter,
+                'data' => []
+            ], 500); // Internal Server Error status code
         }
     }
 
