@@ -11,6 +11,9 @@ use App\Models\Destinasi;
 
 class PaketDestinasiAPIController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         $paketDestinasi = PaketDestinasi::all(); // Mengambil semua data dari tabel paket_destinasi
@@ -36,6 +39,9 @@ class PaketDestinasiAPIController extends Controller
         }
     }
 
+    /**
+     * Display a listing of the resource.
+     */
     public function filter(Request $request)
     {
         // Dapatkan data yang dikirim dari Laravel UI
@@ -218,6 +224,9 @@ class PaketDestinasiAPIController extends Controller
         }
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(int $id_paketdestinasi)
     {
         // Mencari data jadwal destinasi berdasarkan id_jadwaldestinasi
@@ -240,6 +249,9 @@ class PaketDestinasiAPIController extends Controller
         }
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         // Dapatkan data yang dikirim dari Laravel UI
@@ -284,6 +296,9 @@ class PaketDestinasiAPIController extends Controller
         }
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request)
     {
         // Dapatkan data yang dikirim dari Laravel UI
@@ -345,6 +360,9 @@ class PaketDestinasiAPIController extends Controller
         ], 200);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(Request $request)
     {
         // Dapatkan id_destinasi dari request

@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthAPIController;
+use App\Http\Controllers\API\UserAPIController;
 use App\Http\Controllers\API\DestinasiAPIController;
 use App\Http\Controllers\API\PaketDestinasiAPIController;
 use App\Http\Controllers\API\JadwalDestinasiAPIController;
@@ -14,14 +15,17 @@ use App\Http\Controllers\API\JadwalDestinasiAPIController;
 // Open Routes
 Route::post('/authenticate', [AuthAPIController::class, 'login']);
 Route::post('/register', [AuthAPIController::class, 'register']);
+Route::get('/show-user/{id}', [UserAPIController::class, 'show']);
 
 // Protected Routes
 Route::group(["middleware" => ["auth:sanctum"]], function(){
     Route::get('/logout', [AuthAPIController::class, 'logout']);
     Route::get('/profile', [AuthAPIController::class, 'profile']);
+
 });
 
 Route::get('/read-destinasi', [DestinasiAPIController::class, 'index']);
+Route::get('/list-destinasi', [DestinasiAPIController::class, 'indexShort']);
 Route::get('/search-destinasi/{id_destinasi}', [DestinasiAPIController::class, 'show']);
 Route::post('/store-destinasi', [DestinasiAPIController::class, 'store']);
 Route::post('/update-destinasi', [DestinasiAPIController::class, 'update']);
@@ -40,5 +44,7 @@ Route::post('/store-jadwal', [JadwalDestinasiAPIController::class, 'store']);
 Route::post('/update-jam-mulai', [JadwalDestinasiAPIController::class, 'updateJamMulai']);
 Route::post('/update-jam-selesai', [JadwalDestinasiAPIController::class, 'updateJamSelesai']);
 Route::post('/update-id-destinasi', [JadwalDestinasiAPIController::class, 'updateIdDestinasi']);
+Route::post('/update-waktu-tempuh', [JadwalDestinasiAPIController::class, 'updateWaktuTempuh']);
+Route::post('/update-jarak-tempuh', [JadwalDestinasiAPIController::class, 'updateJarakTempuh']);
 Route::post('/delete-jadwal', [JadwalDestinasiAPIController::class, 'destroy']);
 

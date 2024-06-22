@@ -86,6 +86,32 @@ class DestinasiAPIController extends Controller
     }
 
     /**
+     * Display a listing of the resource.
+     */
+    public function indexShort()
+    {
+        // Mencari data destinasi
+        $destinasi = Destinasi::all(); // Mengambil semua data dari tabel destinasi
+
+        // Memeriksa apakah data Destinasi ditemukan
+        if ($destinasi -> isEmpty()) {
+            return response() -> json([
+                'status' => false,
+                'message' => 'Get List Destinasi Failed.',
+                'data' => []
+            ], 404);
+        }
+        else {
+            // Kembalikan data destinasi dalam format JSON dengan pesan sukses
+            return response()->json([
+                'status' => true,
+                'message' => 'Get List Destinasi Successfully.',
+                'data' => $destinasi
+            ], 200);
+        }
+    }
+
+    /**
      * Display the specified resource.
      */
     public function show(int $id_destinasi)
