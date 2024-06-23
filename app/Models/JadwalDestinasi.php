@@ -26,8 +26,7 @@ class JadwalDestinasi extends Model
         'id_destinasi',
         'jam_mulai',
         'jam_selesai',
-        'zona_mulai',
-        'zona_selesai',
+        'jam_lokasi',
         'catatan'
         // ... Kolom lain di tabel
     ];

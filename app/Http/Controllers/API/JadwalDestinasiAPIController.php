@@ -37,6 +37,11 @@ class JadwalDestinasiAPIController extends Controller
             for ($i = 0; $i < count($jadwalDestinasi); $i++) {
                 $destinasi = Destinasi::where('id_destinasi', $jadwalDestinasi[$i]['id_destinasi']) -> first();
                 $namaDestinasi = $destinasi ? $destinasi['nama_destinasi'] : ''; // Set default value if not found
+                $kotaDestinasi = $destinasi ? $destinasi['kota'] : '';
+                $fotoDestinasi = $destinasi ? $destinasi['foto'] : '';
+                $wniDestinasi = $destinasi ? $destinasi['harga_wni'] : '';
+                $wnaDestinasi = $destinasi ? $destinasi['harga_wna'] : '';
+                $ratingDestinasi = $destinasi ? $destinasi['rating'] : '';
                 $jadwalDestinasi[$i] = [
                     'id_jadwaldestinasi' => $dataJadwal[$i]['id_jadwaldestinasi'],
                     'id_paketdestinasi' => $dataJadwal[$i]['id_paketdestinasi'],
@@ -51,10 +56,14 @@ class JadwalDestinasiAPIController extends Controller
                     'id_destinasi' => $dataJadwal[$i]['id_destinasi'],
                     'jam_mulai' => $dataJadwal[$i]['jam_mulai'],
                     'jam_selesai' => $dataJadwal[$i]['jam_selesai'],
-                    'zona_mulai' => $dataJadwal[$i]['zona_mulai'],
-                    'zona_selesai' => $dataJadwal[$i]['zona_selesai'],
+                    'jam_lokasi' => $dataJadwal[$i]['jam_lokasi'],
                     'catatan' => $dataJadwal[$i]['catatan'],
-                    'nama_destinasi' => $namaDestinasi
+                    'nama_destinasi' => $namaDestinasi,
+                    'kota' => $kotaDestinasi,
+                    'foto' => $fotoDestinasi,
+                    'harga_wni' => $wniDestinasi,
+                    'harga_wna' => $wnaDestinasi,
+                    'rating' => $ratingDestinasi,
                 ];
             }
 
@@ -115,7 +124,7 @@ class JadwalDestinasiAPIController extends Controller
         }
 
         // Prepare parameterized stored procedure call
-        $storedProcCall = "CALL jadwal_destinasi (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $storedProcCall = "CALL jadwal_destinasi (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $boundParams = [
             $data['id_paketdestinasi'],
             $data['hari'],
@@ -126,8 +135,7 @@ class JadwalDestinasiAPIController extends Controller
             $data['id_destinasi'],
             $data['jam_mulai'],
             $data['jam_selesai'],
-            $data['zona_mulai'],
-            $data['zona_selesai'],
+            $data['jam_lokasi'],
             $data['catatan'],
         ];
 

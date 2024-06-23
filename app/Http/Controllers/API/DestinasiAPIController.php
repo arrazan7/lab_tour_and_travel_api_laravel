@@ -356,6 +356,17 @@ class DestinasiAPIController extends Controller
                 'id_tema' => $temaData // Menyisipkan data tema destinasi
             ]; // Menyisipkan data destinasi ke array
 
+            // Menghindari null
+            if (empty($data['foto'])) {
+                $data['foto'] = "";
+            }
+            if (empty($data['koordinat'])) {
+                $data['koordinat'] = "";
+            }
+            if (empty($data['deskripsi'])) {
+                $data['deskripsi'] = "";
+            }
+
             $storedQueryUpdate = "UPDATE destinasi SET
                 nama_destinasi = :nama_destinasi,
                 jenis = :jenis,
