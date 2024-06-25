@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use App\Models\Destinasi;
 use App\Models\DestinasiTutup;
 use App\Models\Tema;
@@ -210,8 +211,14 @@ class DestinasiAPIController extends Controller
             }
             else {
                 // Menghindari null
-                if (empty($data['foto'])) {
-                    $data['foto'] = "";
+                // upload image
+                if ($request -> hasFile('foto')) {
+                    $extension = $request -> file('foto') -> getClientOriginalExtension();
+                    $basename = uniqid() . time();
+
+                    $namaFileFoto = "{$basename}.{$extension}";
+                } else {
+                    $namaFileFoto = '';
                 }
                 if (empty($data['koordinat'])) {
                     $data['koordinat'] = "";
@@ -232,7 +239,7 @@ class DestinasiAPIController extends Controller
                     $data['jam_lokasi'],
                     $data['harga_wni'],
                     $data['harga_wna'],
-                    $data['foto'],
+                    $namaFileFoto,
                     $data['koordinat'],
                     $data['deskripsi']
                 ];
@@ -241,13 +248,18 @@ class DestinasiAPIController extends Controller
                 try {
                     DB::statement($storedInsertDestinasi, $boundParamsDestinasi);
 
+                    // save image jika ada
+                    if ($request -> hasFile('foto')) {
+                        $pathFoto = $request -> file('foto') -> storeAs('public/destinasi', $namaFileFoto);
+                    }
+
                     $destinasi = Destinasi::where('nama_destinasi', $data['nama_destinasi'])
                     ->where('jenis', $data['jenis'])
                     ->where('kota', $data['kota'])
                     ->get()
                     ->first();
 
-                    foreach ($data['id_tema'] as $id_tema) {
+                    foreach (json_decode($data['id_tema'], true) as $id_tema) {
                         // Prepare parameterized stored insert tema destinasi
                         $storedInsertTema = "INSERT INTO tema_destinasi VALUES (0, ?, ?)";
                         $boundParamsTema = [
@@ -267,7 +279,7 @@ class DestinasiAPIController extends Controller
                         }
                     };
 
-                    foreach ($data['hari_tutup'] as $nama_hari) {
+                    foreach (json_decode($data['hari_tutup'], true) as $nama_hari) {
                         // Prepare parameterized stored insert tema destinasi
                         $storedInsertTutup = "INSERT INTO destinasi_tutup VALUES (0, ?, ?)";
                         $boundParamsTutup = [
@@ -357,14 +369,21 @@ class DestinasiAPIController extends Controller
             ]; // Menyisipkan data destinasi ke array
 
             // Menghindari null
-            if (empty($data['foto'])) {
-                $data['foto'] = "";
-            }
             if (empty($data['koordinat'])) {
                 $data['koordinat'] = "";
             }
             if (empty($data['deskripsi'])) {
                 $data['deskripsi'] = "";
+            }
+            if ($request -> hasFile('foto')) {
+                // foto perlu diperbarui
+                $extension = $request -> file('foto') -> getClientOriginalExtension();
+                $basename = uniqid() . time();
+
+                $namaFileFoto = "{$basename}.{$extension}";
+            }
+            else {
+                $namaFileFoto = $destinasiDatabase['foto'];
             }
 
             $storedQueryUpdate = "UPDATE destinasi SET
@@ -376,6 +395,7 @@ class DestinasiAPIController extends Controller
                 jam_lokasi = :jam_lokasi,
                 harga_wni = :harga_wni,
                 harga_wna = :harga_wna,
+                foto = :foto,
                 koordinat = :koordinat,
                 deskripsi = :deskripsi
             WHERE id_destinasi = :id_destinasi";
@@ -389,6 +409,7 @@ class DestinasiAPIController extends Controller
                 ':jam_lokasi' => $data['jam_lokasi'],
                 ':harga_wni' => $data['harga_wni'],
                 ':harga_wna' => $data['harga_wna'],
+                ':foto' => $namaFileFoto,
                 ':koordinat' => $data['koordinat'],
                 ':deskripsi' => $data['deskripsi'],
                 ':id_destinasi' => $data['id_destinasi'],
@@ -405,26 +426,12 @@ class DestinasiAPIController extends Controller
                 ], 500);
             }
 
-
-            if (!empty($data['foto'])) {
-                // foto perlu diperbarui
-                // Prepare parameterized stored update
-                $storedQueryUpdate = "UPDATE destinasi SET foto = ? WHERE id_destinasi = ?";
-                $boundParams = [
-                    $data['foto'],
-                    $data['id_destinasi']
-                ];
-
-                // Execute stored query update using try-catch block
-                try {
-                    DB::statement($storedQueryUpdate, $boundParams);
-                } catch (\Exception $e) {
-                    return response() -> json([
-                        'status' => false,
-                        'message' => 'Gagal memperbarui foto Destinasi. Message: ' .$e. '', // User-friendly error message,
-                        'data' => []
-                    ], 500);
-                }
+            // save new image jika ada
+            if ($request -> hasFile('foto')) {
+                // delete old image
+                File::delete(public_path() ."/storage/destinasi/".$destinasiDatabase['foto']);
+                // save new image
+                $pathFoto = $request -> file('foto') -> storeAs('public/destinasi', $namaFileFoto);
             }
 
             // Menghapus id_tema pada database yang tidak ada di data form
@@ -451,7 +458,7 @@ class DestinasiAPIController extends Controller
             };
 
             // Menambah id_tema pada database berdasarkan id_tema baru di data form
-            foreach ($data['id_tema'] as $id_temaForm) {
+            foreach (json_decode($data['id_tema'], true) as $id_temaForm) {
                 if (!in_array($id_temaForm, $destinasiDatabase['id_tema'])) {
                     // Prepare parameterized stored insert tema destinasi
                     $storedInsertTema = "INSERT INTO tema_destinasi VALUES (0, ?, ?)";
@@ -496,7 +503,7 @@ class DestinasiAPIController extends Controller
             };
 
             // Menambah hari_tutup pada database berdasarkan hari_tutup baru di data form
-            foreach ($data['hari_tutup'] as $hari_tutupForm) {
+            foreach (json_decode($data['hari_tutup'], true) as $hari_tutupForm) {
                 if (!in_array($hari_tutupForm, $destinasiDatabase['hari_tutup'])) {
                     // Prepare parameterized stored insert destinasi tutup
                     $storedInsertTutup = "INSERT INTO destinasi_tutup VALUES (0, ?, ?)";
@@ -532,6 +539,10 @@ class DestinasiAPIController extends Controller
     {
         // Dapatkan id_destinasi dari request
         $id_destinasi = $request->input('id_destinasi');
+
+        // Mencari data destinasi berdasarkan id_destinasi
+        $destinasi = Destinasi::where('id_destinasi', $id_destinasi) -> get() -> first();
+        $old_foto = $destinasi -> foto;
 
         // Hapus tema destinasi. Prepare parameterized stored delete
         $queryTema = "DELETE FROM tema_destinasi WHERE id_destinasi = ?";
@@ -579,6 +590,12 @@ class DestinasiAPIController extends Controller
                 'message' => 'Gagal menghapus hari Destinasi. Message: ' .$e. '', // User-friendly error message,
                 'data' => []
             ], 500);
+        }
+
+        // delete old image
+        if ($destinasi -> foto) {
+            //delete old image
+            File::delete(public_path() ."/storage/destinasi/".$old_foto);
         }
 
         return response() -> json([

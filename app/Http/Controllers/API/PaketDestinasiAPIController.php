@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use App\Models\PaketDestinasi;
 use App\Models\Tema;
 use App\Models\Destinasi;
@@ -270,17 +271,32 @@ class PaketDestinasiAPIController extends Controller
             }
         }
 
+        //upload image
+        if ($request -> hasFile('foto')) {
+            $extension = $request -> file('foto') -> getClientOriginalExtension();
+            $basename = uniqid() . time();
+
+            $namaFileFoto = "{$basename}.{$extension}";
+        } else {
+            $namaFileFoto = '';
+        }
+
         // Prepare parameterized stored procedure call
         $storedProcCall = "CALL paket_destinasi (?, ?, ?)";
         $boundParams = [
             $data['id_profile'],
             $data['nama_paket'],
-            $data['foto']
+            $namaFileFoto
         ];
 
         // Execute stored procedure using try-catch block
         try {
             DB::statement($storedProcCall, $boundParams);
+
+            // save image jika ada
+            if ($request -> hasFile('foto')) {
+                $pathFoto = $request -> file('foto') -> storeAs('public/paket_destinasi', $namaFileFoto);
+            }
 
             return response() -> json([
                 'status' => true,
@@ -332,12 +348,16 @@ class PaketDestinasiAPIController extends Controller
             ], 500);
         }
 
-        if (!empty($data['foto'])) {
+        if ($request -> file('foto')) {
             // foto perlu diperbarui
+            $extension = $request -> file('foto') -> getClientOriginalExtension();
+            $basename = uniqid() . time();
+
+            $namaFileFoto = "{$basename}.{$extension}";
             // Prepare parameterized stored update
             $storedFoto = "UPDATE paket_destinasi SET foto = ? WHERE id_paketdestinasi = ?";
             $paramsFoto = [
-                $data['foto'],
+                $namaFileFoto,
                 $data['id_paketdestinasi']
             ];
 
@@ -351,12 +371,17 @@ class PaketDestinasiAPIController extends Controller
                     'data' => []
                 ], 500);
             }
+
+            // delete old image
+            File::delete(public_path() ."/storage/paket_destinasi/".$data['old_foto']);
+            // save new image
+            $pathFoto = $request -> file('foto') -> storeAs('public/paket_destinasi', $namaFileFoto);
         }
 
         return response() -> json([
             'status' => true,
             'message' => 'Paket Destinasi Berhasil Diperbarui.',
-            'data' => $data
+            'data' => $data,
         ], 200);
     }
 
@@ -368,6 +393,7 @@ class PaketDestinasiAPIController extends Controller
         // Dapatkan id_destinasi dari request
         $id_paketdestinasi = $request->input('id_paketdestinasi');
         $durasi_wisata = $request->input('durasi_wisata');
+        $old_foto = $request->input('old_foto');
 
         // Hapus jadwal destinasi. Prepare parameterized stored delete
         for ($hari_ke = $durasi_wisata; $hari_ke >= 1; $hari_ke--) {
@@ -393,6 +419,7 @@ class PaketDestinasiAPIController extends Controller
         $paramPaket = [
             $id_paketdestinasi
         ];
+
         // Execute stored query update using try-catch block
         try {
             DB::statement($queryPaket, $paramPaket);
@@ -402,6 +429,12 @@ class PaketDestinasiAPIController extends Controller
                 'message' => 'Gagal menghapus paket Destinasi. Message: ' .$e. '', // User-friendly error message,
                 'data' => []
             ], 500);
+        }
+
+        // delete old image
+        if (!empty($old_foto)) {
+            //delete old image
+            File::delete(public_path() ."/storage/paket_destinasi/".$old_foto);
         }
 
         return response() -> json([
